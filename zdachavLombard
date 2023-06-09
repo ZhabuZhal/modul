@@ -1,0 +1,273 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Data.OleDb;
+using Word = Microsoft.Office.Interop.Word;
+using System.Runtime.InteropServices;
+using System.IO;
+
+namespace Lombard
+{
+    public partial class ZakladForm : Form
+    {
+        SQLQuery sql = new SQLQuery();
+        DbClass db = new DbClass();
+        DataTable dataTable = new DataTable();
+        OleDbDataAdapter adapter = new OleDbDataAdapter();
+        Word.Application w;
+        public BindingSource binding = new BindingSource();
+        public ZakladForm()
+        {
+            InitializeComponent();
+        }
+
+        private void ZakladForm_Load(object sender, EventArgs e)
+        {
+            sql.LoadData(dataGridView1,"ЗдачаВломбард", "SELECT ЗдачаВломбард.Код_закладу, Категорії_товару.Назва, Клієнти.ПІБ, ЗдачаВломбард.Опис_товару, ЗдачаВломбард.Дата_здачи, ЗдачаВломбард.Срок_повернення, ЗдачаВломбард.Сума, ЗдачаВломбард.Комісійні " + 
+                "FROM Категорії_товару INNER JOIN(Клієнти INNER JOIN ЗдачаВломбард ON Клієнти.[Код_клієнта] = ЗдачаВломбард.[Код_клієнта]) ON Категорії_товару.[Код_категорії] = ЗдачаВломбард.[Код_категорії]; ");
+            sql.LoadComboBox(comboBox1,"Назва", "SELECT Назва FROM Категорії_товару");
+            sql.LoadComboBox(comboBox2, "ПІБ", "SELECT ПІБ FROM Клієнти");
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (button1.Text == "Додати")
+            {
+                if (comboBox1.Text == ""  
+                    textBox2.Text == "" 
+                    dateTimePicker2.Text == "" 
+                    textBox4.Text == "")
+                {
+                    MessageBox.Show("Необхідно заповнити усі поля", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                else
+                {
+                    OleDbCommand cmd = new OleDbCommand("SELECT Код_категорії FROM Категорії_товару WHERE Назва = @nazva", db.GetCon());
+                    cmd.Parameters.AddWithValue("@nazva", comboBox1.Text);
+                    adapter.SelectCommand = cmd;
+                    dataTable.Clear();
+                    adapter.Fill(dataTable);
+                    if(dataTable.Rows.Count>0)
+                    {
+                        label8.Text = dataTable.Rows[0][0].ToString();
+                    }
+                    
+                    cmd = new OleDbCommand("SELECT Код_клієнта FROM Клієнти WHERE ПІБ = @pib", db.GetCon());
+                    cmd.Parameters.AddWithValue("@pib", comboBox2.Text);
+                    adapter.SelectCommand = cmd;
+                    dataTable.Clear();
+                    adapter.Fill(dataTable);
+                    if (dataTable.Rows.Count > 0)
+                    {
+                        label9.Text = dataTable.Rows[0][1].ToString();
+                    }
+sql.InsertZdacha(int.Parse(label8.Text),
+                    int.Parse(label9.Text),
+                    textBox2.Text,
+                    Convert.ToDateTime(dateTimePicker1.Text),
+                    Convert.ToDateTime(dateTimePicker2.Text),
+                    decimal.Parse(textBox3.Text),
+                    decimal.Parse(textBox4.Text));
+                    comboBox1.Text = "";
+                    comboBox2.Text = "";
+                    textBox2.Text = "";
+                    dateTimePicker1.Text = "";
+                    dateTimePicker2.Text = "";
+                    textBox3.Text = "";
+                    textBox4.Text = "";
+                    sql.LoadData(dataGridView1, "ЗдачаВломбард", "SELECT ЗдачаВломбард.Код_закладу, Категорії_товару.Назва, Клієнти.ПІБ, ЗдачаВломбард.Опис_товару, ЗдачаВломбард.Дата_здачи, ЗдачаВломбард.Срок_повернення, ЗдачаВломбард.Сума, ЗдачаВломбард.Комісійні " +
+                    "FROM Категорії_товару INNER JOIN(Клієнти INNER JOIN ЗдачаВломбард ON Клієнти.[Код_клієнта] = ЗдачаВломбард.[Код_клієнта]) ON Категорії_товару.[Код_категорії] = ЗдачаВломбард.[Код_категорії]; ");
+
+                }
+            }
+            else if (button1.Text == "Редагувати")
+            {
+                if (comboBox1.Text == "" 
+                    textBox2.Text == "" 
+                    dateTimePicker2.Text == "" 
+                    textBox4.Text == "")
+                {
+                    MessageBox.Show("Необхідно заповнити усі поля", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                else
+                {
+                    OleDbCommand cmd = new OleDbCommand("SELECT Код_категорії FROM Категорії_товару WHERE Назва = @nazva", db.GetCon());
+                    cmd.Parameters.AddWithValue("@nazva", comboBox1.Text);
+                    adapter.SelectCommand = cmd;
+                    dataTable.Clear();
+                    adapter.Fill(dataTable);
+                    if (dataTable.Rows.Count > 0)
+                    {
+                        label8.Text = dataTable.Rows[0][0].ToString();
+                    }
+
+                    cmd = new OleDbCommand("SELECT Код_клієнта FROM Клієнти WHERE ПІБ = @pib", db.GetCon());
+                    cmd.Parameters.AddWithValue("@pib", comboBox2.Text);
+                    adapter.SelectCommand = cmd;
+                    dataTable.Clear();
+                    adapter.Fill(dataTable);
+                    if (dataTable.Rows.Count > 0)
+                    {
+                        label9.Text = dataTable.Rows[0][1].ToString();
+                    }
+sql.UpdateZdacha(int.Parse(dataGridView1.Rows[dataGridView1.CurrentRow.Index].Cells[0].Value.ToString()),
+                    int.Parse(label8.Text),
+                    int.Parse(label9.Text),
+                    textBox2.Text,
+                    Convert.ToDateTime(dateTimePicker1.Text),
+                    Convert.ToDateTime(dateTimePicker2.Text),
+                    decimal.Parse(textBox3.Text),
+                    decimal.Parse(textBox4.Text));
+                    comboBox1.Text = "";
+                    comboBox2.Text = "";
+                    textBox2.Text = "";
+                    dateTimePicker1.Text = "";
+                    dateTimePicker2.Text = "";
+                    textBox3.Text = "";
+                    textBox4.Text = "";
+                    sql.LoadData(dataGridView1, "ЗдачаВломбард", "SELECT ЗдачаВломбард.Код_закладу, Категорії_товару.Назва, Клієнти.ПІБ, ЗдачаВломбард.Опис_товару, ЗдачаВломбард.Дата_здачи, ЗдачаВломбард.Срок_повернення, ЗдачаВломбард.Сума, ЗдачаВломбард.Комісійні " +
+                    "FROM Категорії_товару INNER JOIN(Клієнти INNER JOIN ЗдачаВломбард ON Клієнти.[Код_клієнта] = ЗдачаВломбард.[Код_клієнта]) ON Категорії_товару.[Код_категорії] = ЗдачаВломбард.[Код_категорії]; ");
+                    groupBox1.Text = "Додавання";
+                    button1.Text = "Додати";
+                }
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            comboBox1.Text = "";
+            comboBox2.Text = "";
+            textBox2.Text = "";
+            dateTimePicker1.Text = "";
+            dateTimePicker2.Text = "";
+            textBox3.Text = "";
+            textBox4.Text = "";
+            groupBox1.Text = "Додавання";
+            button1.Text = "Додати";
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("Видалити цей запис?", "Питання", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                sql.DeleteZdacha(int.Parse(dataGridView1.Rows[dataGridView1.CurrentRow.Index].Cells[0].Value.ToString()));
+                sql.LoadData(dataGridView1, "ЗдачаВломбард", "SELECT ЗдачаВломбард.Код_закладу, Категорії_товару.Назва, Клієнти.ПІБ, ЗдачаВломбард.Опис_товару, ЗдачаВломбард.Дата_здачи, ЗдачаВломбард.Срок_повернення, ЗдачаВломбард.Сума, ЗдачаВломбард.Комісійні " +
+                "FROM Категорії_товару INNER JOIN(Клієнти INNER JOIN ЗдачаВломбард ON Клієнти.[Код_клієнта] = ЗдачаВломбард.[Код_клієнта]) ON Категорії_товару.[Код_категорії] = ЗдачаВломбард.[Код_категорії]; ");
+            }
+        }
+
+        private void dataGridView1_CellContentDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            comboBox1.Text = dataGridView1.Rows[dataGridView1.CurrentRow.Index].Cells[1].Value.ToString();
+            comboBox2.Text = dataGridView1.Rows[dataGridView1.CurrentRow.Index].Cells[2].Value.ToString();
+            textBox2.Text = dataGridView1.Rows[dataGridView1.CurrentRow.Index].Cells[3].Value.ToString();
+            dateTimePicker1.Text = dataGridView1.Rows[dataGridView1.CurrentRow.Index].Cells[4].Value.ToString();
+            dateTimePicker2.Text = dataGridView1.Rows[dataGridView1.CurrentRow.Index].Cells[5].Value.ToString();
+            textBox3.Text = dataGridView1.Rows[dataGridView1.CurrentRow.Index].Cells[6].Value.ToString();
+            textBox4.Text = dataGridView1.Rows[dataGridView1.CurrentRow.Index].Cells[7].Value.ToString();
+            groupBox1.Text = "Редагування";
+            button1.Text = "Редагувати";
+        }
+
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            object findText = null;
+            //на что меняем
+            object replaceWith = null;
+            //параметры замены
+            object replace = null;
+            //переменная для пропуска параметров в методах Word
+            object missing = Type.Missing;
+            binding.DataSource = dataGridView1.DataSource;
+w = Marshal.GetActiveObject("Word.Application") as Word.Application;
+
+            //создаем новый документ на основе шаблона
+            object fileName = Application.StartupPath + "\\dogovor.dot";
+            Word.Document doc = null;
+            doc = w.Documents.Add(fileName);
+            findText = ":#date#";
+            replaceWith = Convert.ToDateTime((binding.Current as
+            DataRowView)["Дата_здачи"]).ToString("dd/MM/yyyy");
+            replace = 2;
+            w.Selection.Find.Execute(ref findText, ref missing, ref
+            missing, ref missing, ref missing, ref missing,
+            ref missing, ref missing, ref missing,
+            ref replaceWith, ref replace, ref missing,
+            ref missing, ref missing, ref missing);
+            //меняем #imya# на поле imya
+            findText = ":#srok#";
+            replaceWith = Convert.ToDateTime((binding.Current as
+           DataRowView)["Срок_повернення"]).ToString("dd/MM/yyyy");
+            replace = 2;
+            w.Selection.Find.Execute(ref findText, ref missing, ref
+            missing,
+            ref missing, ref missing, ref missing,
+            ref missing, ref missing, ref missing,
+            ref replaceWith, ref replace, ref missing,
+            ref missing, ref missing, ref missing);
+            //меняем #otch# на поле otch
+            findText = "#pib#";
+            replaceWith = (binding.Current as
+            DataRowView)["ПІБ"].ToString();
+            replace = 2;
+            w.Selection.Find.Execute(ref findText, ref missing, ref
+            missing,
+            ref missing, ref missing, ref missing,
+            ref missing, ref missing, ref missing,
+            ref replaceWith, ref replace, ref missing,
+            ref missing, ref missing, ref missing);
+            //меняем #grup# на поле grup
+            findText = "#catygory#";
+            replaceWith = (binding.Current as
+            DataRowView)["Назва"].ToString();
+            replace = 2;
+            w.Selection.Find.Execute(ref findText, ref missing, ref
+            missing,
+            ref missing, ref missing, ref missing,
+            ref missing, ref missing, ref missing,
+            ref replaceWith, ref replace, ref missing,
+            ref missing, ref missing, ref missing);
+            //меняем #finance# на поле finance
+            findText = ":#opis#";
+            replaceWith = (binding.Current as
+            DataRowView)["Опис_товару"].ToString();
+            replace = 2;
+            w.Selection.Find.Execute(ref findText, ref missing, ref
+            missing,
+            ref missing, ref missing, ref missing,
+            ref missing, ref missing, ref missing,
+            ref replaceWith, ref replace, ref missing,
+            ref missing, ref missing, ref missing);
+            findText = "#suma#";
+            replaceWith = Convert.ToDecimal((binding.Current as
+            DataRowView)["Сума"]);
+            replace = 2;
+            w.Selection.Find.Execute(ref findText, ref missing, ref
+            missing,
+            ref missing, ref missing, ref missing,
+            ref missing, ref missing, ref missing,
+            ref replaceWith, ref replace, ref missing,
+            ref missing, ref missing, ref missing);
+            //меняем #srbal# на поле srbal
+            findText = "#komisiyni#";
+            replaceWith = Convert.ToDecimal((binding.Current as
+            DataRowView)["Комісійні"]);
+            replace = 2;
+            w.Selection.Find.Execute(ref findText, ref missing, ref
+            missing,
+            ref missing, ref missing, ref missing,
+            ref missing, ref missing, ref missing,
+            ref replaceWith, ref replace, ref missing,
+            ref missing, ref missing, ref missing);
+            //делаем окно Word видимым
+            w.Visible = true;
+        }
+    }
+}
+
